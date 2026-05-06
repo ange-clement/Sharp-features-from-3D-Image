@@ -38,14 +38,14 @@ $: extract_sharp_features -a on -c on -v on -f on "input/cut_cube_sphere.inr"
 ```
 
 ---
-Extract sharp features from the `anchor(30).off` mesh, by gereating an 512x512x512 image, with Ambrosio-Tortorelli using the default parameters, and measure the line accuracy (extracted with an angle threshold of 30°) and the mesh accuracy.
+Extract sharp features from the `anchor(30).off` mesh, by generating an 512x512x512 image, with Ambrosio-Tortorelli using the default parameters, and measure the line accuracy (extracted with an angle threshold of 30°) and the mesh accuracy.
 
 ```shell
 $: extract_sharp_features "input/anchor(30).off" --extract_line_angle 30 --mesh_image_resolution 512 --measure_mesh_accuracy true --measure_line_accuracy true
 ```
 
-Same, but add Kanungo noise (`k=0.2`) in the image before the feature extraction.
+Extract sharp features from the `anchor(30).off` mesh, by generating an 256x256x256 image with added Kanungo noise (`k=0.2`), with the Curvature measure only and the selection threshold at 30%, and do measurements.
 
 ```shell
-$: extract_sharp_features "input/anchor(30).off" --extract_line_angle 30 --mesh_image_resolution 512 --noise_amount .3 --measure_mesh_accuracy true --measure_line_accuracy true
+$: extract_sharp_features "input/anchor(30).off" -a off -c on --selection_threshold 0.3 --extract_line_angle 30 --mesh_image_resolution 256 --noise_amount .3 --measure_mesh_accuracy true --measure_line_accuracy true
 ```
