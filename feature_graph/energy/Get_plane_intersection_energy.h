@@ -161,10 +161,10 @@ namespace Feature_graph_energy
                         incorrect_surfels_it++;
                 }
             }
-            if (!incorrect_surfels.empty())
-            {
-                std::cout << "WARNING: Could not solve the groups of some surfels, they are treated as corners" << std::endl;
-            }
+            // if (!incorrect_surfels.empty())
+            // {
+            //     std::cout << "WARNING: Could not solve the groups of some surfels, they are treated as corners" << std::endl;
+            // }
         }
 
         std::vector<std::map<const Surfel *, std::vector<Plane>>> make_surfel_planes(

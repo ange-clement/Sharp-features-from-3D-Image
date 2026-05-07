@@ -700,6 +700,14 @@ namespace helper
         helper::bBlock("filter noise to remove floating voxels");
         CGAL::Image_3 cgal_noise_image = dgtal_image_to_cgal_image(dgtal_image);
         CGAL::Image_3 result_image = remove_floating_voxels(cgal_noise_image, voxel_count_threshold);
+        // put the image in the same world space
+        result_image.tx() = image.tx();
+        result_image.ty() = image.ty();
+        result_image.tz() = image.tz();
+        result_image.image()->vx = image.vx();
+        result_image.image()->vy = image.vy();
+        result_image.image()->vz = image.vz();
+
         helper::eBlock();
         return result_image;
     }

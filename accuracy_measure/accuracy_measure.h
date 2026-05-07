@@ -222,7 +222,7 @@ namespace Accuracy_measure
         const double default_sizing = diag * sizing;
         Mesh_criteria criteria(
             CGAL::parameters::edge_size(default_sizing)
-                .edge_min_size(0.1 * default_sizing)
+                .edge_min_size(0.25 * default_sizing)
                 // .edge_distance(default_approx)
                 .facet_angle(25.)
                 .facet_size(default_sizing)
