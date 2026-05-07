@@ -44,8 +44,8 @@ Extract sharp features from the `anchor(30).off` mesh, by generating an 512x512x
 $: extract_sharp_features "input/anchor(30).off" --extract_line_angle 30 --mesh_image_resolution 512 --measure_mesh_accuracy true --measure_line_accuracy true
 ```
 
-Extract sharp features from the `anchor(30).off` mesh, by generating an 256x256x256 image with added Kanungo noise (`k=0.2`), with the Curvature measure only and the selection threshold at 30%, and do measurements.
+Extract sharp features from the `anchor(30).off` mesh, by generating an 256x256x256 image with added Kanungo noise (`k=0.2`), with the Curvature measure only and the selection threshold at 30%, and measure the line accuracy.
 
 ```shell
-$: extract_sharp_features "input/anchor(30).off" -a off -c on --selection_threshold 0.3 --extract_line_angle 30 --mesh_image_resolution 256 --noise_amount .3 --measure_mesh_accuracy true --measure_line_accuracy true
+$: extract_sharp_features "input/anchor(30).off" -a off -c on --selection_threshold 0.3 --extract_line_angle 30 --mesh_image_resolution 256 --noise_amount .3 --measure_line_accuracy true
 ```
