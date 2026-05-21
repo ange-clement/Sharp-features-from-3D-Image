@@ -188,16 +188,19 @@ struct Curvature_sharpness_measure
                       { v = (v - min) * inv_range; });
 
         // get normals
-        std::vector<helper::DGtal_types::RealPoint> normal_surfels;
-        std::vector<helper::DGtal_types::RealPoint> normals;
-        helper::compute_normals_from_surface(dgtal_image, normal_surfels, normals);
+        helper::DGtal_types::Surface_info surface;
+        helper::get_surface_from_image(
+            /*In */ dgtal_image,
+            /*Out*/ surface);
+        std::vector<helper::DGtal_types::RealPoint> surfel_points;
+        surface.get_surfel_points(surfel_points);
 
         // add values to surfel graph
         internal::convert_dgtal_coordinates(pointels);
-        internal::convert_dgtal_coordinates(normal_surfels);
+        internal::convert_dgtal_coordinates(surfel_points);
         internal::make_pointel_value_map(pointels, values, point_values);
         internal::add_values_of_pointels_to_graph(pointels, values, surface_graph);
-        internal::add_normals_of_surfel_to_graph(normal_surfels, normals, surface_graph);
+        internal::add_normals_of_surfel_to_graph(surfel_points, surface.normals, surface_graph);
     }
 };
 
@@ -229,16 +232,19 @@ struct VCM_sharpness_measure
                       { v = (v - min) * inv_range; });
 
         // get normals
-        std::vector<helper::DGtal_types::RealPoint> normal_surfels;
-        std::vector<helper::DGtal_types::RealPoint> normals;
-        helper::compute_normals_from_surface(dgtal_image, normal_surfels, normals);
+        helper::DGtal_types::Surface_info surface;
+        helper::get_surface_from_image(
+            /*In */ dgtal_image,
+            /*Out*/ surface);
+        std::vector<helper::DGtal_types::RealPoint> surfel_points;
+        surface.get_surfel_points(surfel_points);
 
         // add values to surfel graph
         internal::convert_dgtal_coordinates(pointels);
-        internal::convert_dgtal_coordinates(normal_surfels);
+        internal::convert_dgtal_coordinates(surfel_points);
         internal::make_pointel_value_map(pointels, values, point_values);
         internal::add_values_of_pointels_to_graph(pointels, values, surface_graph);
-        internal::add_normals_of_surfel_to_graph(normal_surfels, normals, surface_graph);
+        internal::add_normals_of_surfel_to_graph(surfel_points, surface.normals, surface_graph);
     }
 };
 
@@ -272,11 +278,10 @@ struct Feedback_loop_AT_measure
         helper::get_surface_from_image(
             /*In */ dgtal_image,
             /*Out*/ surface);
-        std::vector<helper::DGtal_types::RealPoint> normal_surfels;
-        std::vector<helper::DGtal_types::RealPoint> normals; // on surfels
-        helper::compute_normals_from_surface(dgtal_image, normal_surfels, normals);
-        internal::convert_dgtal_coordinates(normal_surfels);
-        internal::add_normals_of_surfel_to_graph(normal_surfels, normals, surface_graph);
+        std::vector<helper::DGtal_types::RealPoint> surfel_points;
+        surface.get_surfel_points(surfel_points);
+        internal::convert_dgtal_coordinates(surfel_points);
+        internal::add_normals_of_surfel_to_graph(surfel_points, surface.normals, surface_graph);
         // get normals from normal optimization using the feature graph
         //   get frontier surfels
         std::set<const Surfel *> corner_surfels;
@@ -306,22 +311,22 @@ struct Feedback_loop_AT_measure
         Surface_process::write_surface_graph_infos<helper::CGAL_types::K, Vector>(surface_graph, "tmp/feedback_surface_sharpen");
 
         //   output sharpened normals in the DGtal surface
-        surface.get_surfel_points(normal_surfels);
-        Surface_process::extract_normals(surface_graph, normal_surfels, surface.normals);
+        Surface_process::extract_normals(surface_graph, surfel_points, /*Out*/surface.normals);
         // compute using the sharpned normals
         std::vector<helper::DGtal_types::RealPoint> pointels;
         std::vector<double> values; // on pointels
+        helper::DGtal_types::SH::RealVectors AT_sharpened_normals;
         helper::compute_AT_normals_and_values_from_surface(
             /*In */ surface,
-            /*Out*/ normal_surfels, pointels, normals, values, alpha, lambda, width_start, width_end, width_divide);
+            /*Out*/ surfel_points, pointels, AT_sharpened_normals, values, alpha, lambda, width_start, width_end, width_divide);
 
         // add values to surfel graph
         internal::convert_dgtal_coordinates(pointels);
-        internal::convert_dgtal_coordinates(normal_surfels);
+        internal::convert_dgtal_coordinates(surfel_points);
         internal::make_pointel_value_map(pointels, values, point_values);
 
         internal::add_values_of_pointels_to_graph(pointels, values, surface_graph);
-        internal::add_normals_of_surfel_to_graph(normal_surfels, normals, surface_graph);
+        internal::add_normals_of_surfel_to_graph(surfel_points, AT_sharpened_normals, surface_graph);
     }
 };
 

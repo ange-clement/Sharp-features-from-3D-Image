@@ -2,6 +2,8 @@
 #ifndef DGTAL_HELPER_H
 #define DGTAL_HELPER_H
 
+#include <cmath>
+
 #include <DGtal/images/SimpleThresholdForegroundPredicate.h>
 
 #include <DGtal/base/Common.h>
@@ -26,6 +28,8 @@
 // #include <DGtal/images/IntervalForegroundPredicate.h>
 // #include <DGtal/base/Clock.h>
 // // #include <DGtal/base/CowPtr.h>
+
+#include <boost/math/constants/constants.hpp>
 
 #include <CGAL/Image_3.h>
 
@@ -437,6 +441,31 @@ namespace helper
             }
         };
 
+        struct Surfel_normal_is_similar
+        {
+            typedef DGtal_types::SH::SCell Vertex;
+
+            const DGtal_types::RealVector &base_normal;
+            const DGtal_types::Surface_info &surface_info;
+            const std::map<Vertex, std::size_t> &surfel_scell_index;
+            const double cos_angle_threshold;
+
+            Surfel_normal_is_similar(const double &cos_angle_threshold,
+                                       const DGtal_types::RealVector &base_normal,
+                                       const DGtal_types::Surface_info &surface_info,
+                                       const std::map<Vertex, std::size_t> &surfel_scell_index)
+            : cos_angle_threshold(cos_angle_threshold), base_normal(base_normal), surface_info(surface_info), surfel_scell_index(surfel_scell_index)
+            {}
+
+            bool operator()(const Vertex &surfel) const
+            {
+                const std::size_t &surfel_id = surfel_scell_index.at(surfel);
+                const DGtal_types::RealVector &surfel_normal = surface_info.normals[surfel_id];
+                const double cos_normal_angle = base_normal.dot(surfel_normal);
+                return cos_normal_angle > cos_angle_threshold;
+            }
+        };
+
     }; // namespace internal
 
     DGtal_types::Image create_dgtal_image(const int& xdim, const int& ydim, const int& zdim)
@@ -477,9 +506,43 @@ namespace helper
         return image;
     }
 
+    void regularize_inversion_on_normals(
+        DGtal_types::Surface_info &surface_info,
+        const double angle_threshold = boost::math::constants::pi<double>()*.25,
+        const std::size_t number_of_surfel_threshold = 8)
+    {
+        using SCell = DGtal_types::SH::SCell;
+        const DGtal_types::KSpace &kspace = surface_info.space;
+        const double &cos_angle_threshold = std::cos(angle_threshold);
+        std::map<SCell, std::size_t> surfel_scell_index;
+        for (std::size_t surfel_id = 0, nb_surfel = surface_info.surfels.size(); surfel_id < nb_surfel; surfel_id++)
+        {
+            surfel_scell_index.emplace(surface_info.surfels[surfel_id], surfel_id);
+        }
+        for (std::size_t surfel_id = 0, nb_surfel = surface_info.surfels.size(); surfel_id < nb_surfel; surfel_id++)
+        {
+            const SCell& surfel_scell = surface_info.surfels[surfel_id];
+            const DGtal_types::RealVector &surfel_normal = surface_info.normals[surfel_id];
+            internal::Surfel_normal_is_similar normal_predicate(cos_angle_threshold, surfel_normal, surface_info, surfel_scell_index);
+            DGtal::BreadthFirstVisitor<DGtal_types::SH::DigitalSurface> visitor( *surface_info.surface, surfel_scell );
+            std::size_t visited_surfel_number = 0;
+            while (!visitor.finished() && visited_surfel_number < number_of_surfel_threshold)
+            {
+                visited_surfel_number++;
+                visitor.expand(normal_predicate);
+            }
+            if (visited_surfel_number < number_of_surfel_threshold)
+            {
+                for (const SCell &surfel_inverted : visitor.markedVertices())
+                {
+                    surface_info.normals[surfel_scell_index.at(surfel_inverted)] *= -1.0;
+                }
+            }
+        }
+    }
+
     void get_surface_from_image(const DGtal_types::Image &src_image,
-                                DGtal_types::Surface_info &surface_info,
-                                const bool &compute_normals = true)
+                                DGtal_types::Surface_info &surface_info)
     {
         typedef DGtal_types::SH::BinaryImage BinaryImage;
         bBlock("transform image -> build digital surface -> estimate II normals.");
@@ -492,14 +555,14 @@ namespace helper
             *(it++) = src_image.at(i);
         }
 
-        DGtal_types::KSpace K = DGtal_types::SH::getKSpace(bimage, params);
-        surface_info.surface = DGtal_types::SH::makeDigitalSurface(bimage, K, params);
+        surface_info.space = DGtal_types::SH::getKSpace(bimage, params);
+        surface_info.surface = DGtal_types::SH::makeDigitalSurface(bimage, surface_info.space, params);
         surface_info.surfels = DGtal_types::SH::getSurfelRange(surface_info.surface, params);
         surface_info.pointels = DGtal_types::SH::getCellRange(surface_info.surface, 0);
-        if (compute_normals)
-            surface_info.normals = DGtal_types::SHG::getIINormalVectors(bimage, surface_info.surfels, params);
-        surface_info.uembedder = DGtal_types::SH::getCellEmbedder(K);
-        surface_info.embedder = DGtal_types::SH::getSCellEmbedder(K);
+        surface_info.normals = DGtal_types::SHG::getIINormalVectors(bimage, surface_info.surfels, params);
+        regularize_inversion_on_normals(surface_info);
+        surface_info.uembedder = DGtal_types::SH::getCellEmbedder(surface_info.space);
+        surface_info.embedder = DGtal_types::SH::getSCellEmbedder(surface_info.space);
         eBlock();
     }
 
@@ -567,30 +630,6 @@ namespace helper
                 /*Out */ surfaces, valuePoints, values,
                 /*Optional In*/ radius, grid_step, threshold);
         }
-    }
-
-    void compute_normals_from_surface(
-        const DGtal_types::Image &src_image,
-        std::vector<DGtal_types::RealPoint> &surfaces,
-        std::vector<DGtal_types::RealVector> &normals)
-    {
-        DGtal::Parameters params = DGtal_types::SH::defaultParameters() | DGtal_types::SHG::defaultParameters();
-        DGtal_types::Domain shapeDomain = src_image.domain();
-        DGtal::CountedPtr<DGtal_types::SH::BinaryImage> bimage(new DGtal_types::SH::BinaryImage(shapeDomain));
-        DGtal_types::SH::BinaryImage::iterator it = bimage->begin();
-        for (std::size_t i = 0, size = src_image.size(); i < size; i++)
-        {
-            *(it++) = src_image.at(i);
-        }
-        DGtal_types::KSpace K = DGtal_types::SH::getKSpace(bimage, params);
-        DGtal::CanonicSCellEmbedder<DGtal_types::KSpace> embedder = DGtal_types::SH::getSCellEmbedder(K);
-        DGtal::CountedPtr<DGtal_types::SH::DigitalSurface> surface = DGtal_types::SH::makeDigitalSurface(bimage, K, params);
-        DGtal_types::SH::SurfelRange dg_surfaces = DGtal_types::SH::getSurfelRange(surface, params);
-        normals = DGtal_types::SHG::getIINormalVectors(bimage, dg_surfaces, params);
-        surfaces.resize(dg_surfaces.size());
-        std::transform(dg_surfaces.cbegin(), dg_surfaces.cend(), surfaces.begin(),
-                       [embedder](const DGtal_types::SH::SCell &c)
-                       { return embedder(c); });
     }
 
     void compute_VCM_values(

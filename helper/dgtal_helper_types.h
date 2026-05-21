@@ -38,6 +38,7 @@ namespace helper
 
         struct Surface_info
         {
+            KSpace space;
             DGtal::CountedPtr<SH::DigitalSurface> surface;
             SH::SurfelRange surfels;
             SH::PointelRange pointels;

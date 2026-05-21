@@ -216,8 +216,8 @@ struct Program_parameters
 
     Mesh_generation_parameters mesh_params;
 
-    bool should_measure_line_accuracy = true;
-    bool should_measure_mesh_accuracy = true;
+    bool should_measure_line_accuracy = false;
+    bool should_measure_mesh_accuracy = false;
 
     boost::program_options::options_description make_option_descriptor()
     {
@@ -412,13 +412,18 @@ Polylines<helper::CGAL_types::Point> process_image_with_measure(
                                 parameters.op_params.plane_detection_max_distance,
                                 out_filepath);
     helper::eBlock();
+
     if (parameters.should_measure_line_accuracy)
     {
+        helper::bBlock("Measure line accuracy");
         display_line_accuracy(image, ground_truth_structures, feature_graph);
+        helper::eBlock();
     }
     if (parameters.should_measure_mesh_accuracy)
     {
+        helper::bBlock("Measure mesh accuracy");
         display_mesh_accuracy(image, out_filepath, ground_truth_structures, feature_graph);
+        helper::eBlock();
     }
     return feature_graph;
 }
